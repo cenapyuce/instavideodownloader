@@ -60,6 +60,6 @@ app.post("/download",async (req, res) => {
                     });
             });
 })
-app.listen(3000, () => {
-    console.log("Server started on http://localhost:3000");
+app.listen(process.env.port, (port) => {
+    console.log(port);
 });
