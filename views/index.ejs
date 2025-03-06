@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Reel Downloader</title>
+    <style>
+        /* General styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #fafafa;
+            color: #262626;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header styles */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0095f6;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            font-size: 1rem;
+            color: #8e8e8e;
+        }
+        
+        /* Downloader form styles */
+        .downloader-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dbdbdb;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #0095f6;
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            z-index: 10;
+            display: none;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0095f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        .loading-text {
+            color: #262626;
+            font-weight: 600;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Video info styles */
+        .video-info {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            display: none;
+        }
+        
+        .video-info.active {
+            display: block;
+        }
+        
+        .video-preview {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #efefef;
+            padding-bottom: 20px;
+        }
+        
+        /* Instagram-style reel player */
+        .reel-player-container {
+            width: 480px;
+            height: 642px; /* Instagram aspect ratio */
+            background-color: #000;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .reel-player {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+        }
+        
+        .reel-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.3);
+            z-index: 2;
+        }
+        
+        .reel-progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #fff;
+            transition: width 0.1s linear;
+        }
+        
+        .reel-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 8px;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .reel-play-pause {
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .reel-play-pause:hover {
+            opacity: 1;
+        }
+        
+        .reel-volume {
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .reel-volume:hover {
+            opacity: 1;
+        }
+        
+        .reel-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .reel-ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .reel-likes,
+        .reel-comments,
+        .reel-share {
+            position: absolute;
+            right: 5px;
+            background: none;
+            border: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.6rem;
+        }
+        
+        .reel-likes {
+            bottom: 80px;
+        }
+        
+        .reel-comments {
+            bottom: 40px;
+        }
+        
+        .reel-share {
+            bottom: 10px;
+        }
+        
+        .reel-audio {
+            position: absolute;
+            bottom: 10px;
+            left: 5px;
+            color: white;
+            font-size: 0.6rem;
+            max-width: 70%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .reel-audio span {
+            display: flex;
+            align-items: center;
+        }
+        
+        .reel-audio svg {
+            margin-right: 3px;
+        }
+        
+        .reel-user {
+            position: absolute;
+            top: 10px;
+            left: 5px;
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 0.7rem;
+        }
+        
+        .reel-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #555;
+            margin-right: 5px;
+            border: 1px solid white;
+        }
+        
+        .video-details {
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .video-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .video-username {
+            color: #0095f6;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .video-stats {
+            display: flex;
+            color: #8e8e8e;
+            font-size: 0.9rem;
+        }
+        
+        .stat {
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stat svg {
+            margin-right: 5px;
+        }
+        
+        .download-options {
+            margin-top: 20px;
+        }
+        
+        .option-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .quality-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .quality-option {
+            background-color: #efefef;
+            border: 1px solid #dbdbdb;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quality-option:hover, .quality-option.active {
+            background-color: #0095f6;
+            color: white;
+            border-color: #0095f6;
+        }
+        
+        .download-action {
+            margin-top: 20px;
+        }
+        
+        /* Footer styles */
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #8e8e8e;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 600px) {
+            .video-preview {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .reel-player-container {
+                width: 180px;
+                height: 320px;
+                margin-bottom: 15px;
+            }
+            
+            .video-details {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Trust InstaReeldownload</div>
+            <div class="tagline">Download Instagram Reels quickly and easily</div>
+        </header>
+        
+        <main>
+            <div class="downloader-card">
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Fetching reel information...</p>
+                </div>
+                
+                <form id="downloadForm">
+                    <div class="form-group">
+                        <label for="reelUrl" class="form-label">Instagram Reel URL</label>
+                        <input type="text" id="reelUrl" class="form-input" placeholder="Paste Instagram Reel URL here..." required>
+                    </div>
+                    <button type="button" id="checkBtn" class="download-btn">Check Reel</button>
+                </form>
+            </div>
+            
+
+            <div class="video-info" id="videoInfo">
+                <div class="video-preview">
+
+                    <div class="reel-player-container">
+                        <div class="reel-player">
+
+                            <div class="reel-placeholder">
+                                <video class="reel-video" id="reel-video" src=""></video>
+                            </div>
+                            
+                            <div class="reel-ui-overlay">
+
+
+
+                            </div> 
+                            
+                            <!-- Reel Controls -->
+                            <div class="reel-controls">
+                                <button class="reel-play-pause" id="reelPlayPause">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
+                                </button>
+                                <button class="reel-volume" id="reel-volume">
+                                    <svg width="16" height="16" viewBox="0 0 1920 1920" fill="white"><path xmlns="http://www.w3.org/2000/svg" d="M1129.432 113v1694.148H903.545l-451.772-451.773V564.773L903.545 113h225.887Zm542.545 248.057C1832.017 521.097 1920 733.882 1920 960.107c0 226.226-87.983 438.898-248.023 598.938l-79.851-79.85c138.694-138.582 214.93-323.018 214.93-519.087 0-196.183-76.236-380.506-214.93-519.2ZM338.83 564.773v790.602H169.415C75.672 1355.375 0 1279.703 0 1185.96V734.187c0-93.742 75.672-169.414 169.415-169.414H338.83Zm1093.922 36.085c95.776 97.018 148.407 224.644 148.407 359.16 0 134.628-52.631 262.253-148.407 359.272l-80.303-79.174c74.656-75.897 115.767-175.4 115.767-280.099 0-104.585-41.111-204.088-115.767-279.986Z" fill-rule="evenodd"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="video-details">
+                        <div class="video-title" id="video-title">Summer vibes at the beach 🌊</div>
+
+                    </div>
+                </div>
+                    <div class="download-action">
+                        <button type="button" class="download-btn">Download Reel</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>© 2025 | This tool is for personal use only.</p>
+        </footer>
+    </div>
+    
+    <script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById("downloadForm");
+    const urlInput = document.getElementById("reelUrl");
+    const videolink = document.getElementById("reel-video");
+    const videotitle = document.getElementById("video-title");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
+    const checkBtn = document.getElementById("checkBtn");
+
+    // Butona tıklanmasıyla formu submit etmeden sadece işlemi başlatıyoruz
+    checkBtn.addEventListener("click", function(event) {
+        event.preventDefault(); // Sayfa yenilenmesini engelle
+        handleFormSubmit(); // Form submit etmeye gerek yok, işlemi başlatıyoruz
+    });
+
+    // Form submit olayını engelleme ve fetch işlemi başlatma
+    form.addEventListener("submit", function(event) {
+        event.preventDefault(); // Sayfa yenilenmesini engelle
+        handleFormSubmit();
+    });
+
+    // Fetch işlemini başlatmak için yardımcı fonksiyon
+    function handleFormSubmit() {
+        // Yükleniyor overlay'ini göster
+        loadingOverlay.classList.add('active');
+
+        // Fetch isteğiyle URL'yi gönder
+        fetch('/download', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: urlInput.value }) // URL'yi JSON formatında gönder
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Yükleniyor overlay'ini gizle
+            loadingOverlay.classList.remove('active');
+            
+            // Video bilgilerini göster
+            document.getElementById('videoInfo').classList.add('active');
+            
+            // Videoyu yerleştir
+            videolink.src = data.videoUrl;
+            videotitle.innerHTML = data.videoDesc;
+        })
+        .catch(error => {
+            console.error(error);
+            loadingOverlay.classList.remove('active');
+            alert("Hata: Video indirilemedi.");
+        });
+    }
+        const video = document.getElementById('reel-video');
+
+    let isPaused = true;
+    document.getElementById('reelPlayPause').addEventListener('click', function() {
+        isPaused = !isPaused;
+        if (isPaused) {
+            this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>';
+            video.pause();
+        } else {
+            video.play();
+            this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>';
+        }
+    });
+    let muted = false;
+    
+    document.getElementById('reel-volume').addEventListener('click', function() {
+        // mute/unmute
+        muted = !muted;
+        if(muted) {
+            video.muted = true;
+            document.getElementById('reel-volume').innerHTML = '<svg width="16" height="16" viewBox="0 0 1920 1920" fill="white"><path xmlns="http://www.w3.org/2000/svg" d="M1129.433 113v1694.15H903.547l-451.774-451.773V564.773L903.547 113h225.886ZM338.83 564.773v790.604H169.415c-92.806 0-167.9-74.166-169.392-166.609L0 1185.962V734.188c0-92.805 74.166-167.9 166.608-169.392l2.807-.023H338.83ZM1789.951 635 1920 764.926 1724.988 959.94 1920 1154.95 1789.951 1285l-194.89-195.012L1400.05 1285 1270 1154.951l195.012-195.012L1270 764.926 1400.049 635l195.012 195.012L1789.951 635Z" fill-rule="evenodd"/></svg>';
+        } else {
+            video.muted = false;
+            document.getElementById('reel-volume').innerHTML = '<svg width="16" height="16" viewBox="0 0 1920 1920" fill="white"><path xmlns="http://www.w3.org/2000/svg" d="M1129.432 113v1694.148H903.545l-451.772-451.773V564.773L903.545 113h225.887Zm542.545 248.057C1832.017 521.097 1920 733.882 1920 960.107c0 226.226-87.983 438.898-248.023 598.938l-79.851-79.85c138.694-138.582 214.93-323.018 214.93-519.087 0-196.183-76.236-380.506-214.93-519.2ZM338.83 564.773v790.602H169.415C75.672 1355.375 0 1279.703 0 1185.96V734.187c0-93.742 75.672-169.414 169.415-169.414H338.83Zm1093.922 36.085c95.776 97.018 148.407 224.644 148.407 359.16 0 134.628-52.631 262.253-148.407 359.272l-80.303-79.174c74.656-75.897 115.767-175.4 115.767-280.099 0-104.585-41.111-204.088-115.767-279.986Z" fill-rule="evenodd"/></svg>';
+        }
+});
+
+});
+
+
+
+        
+        
+        
+        
+        
+        // document.getElementById('checkBtn').addEventListener('click', function() {
+        //     const urlInput = document.getElementById('reelUrl');
+        //     if(urlInput.value.trim() !== '') {
+        //         // Show loading overlay
+        //         document.getElementById('loadingOverlay').classList.add('active');
+                
+        //         // Simulate server response delay
+        //         setTimeout(function() {
+        //             // Hide loading overlay
+        //             document.getElementById('loadingOverlay').classList.remove('active');
+                    
+        //             // Show video info
+        //             document.getElementById('videoInfo').classList.add('active');
+                    
+        //             // Start progress bar animation
+        //             startReelProgressAnimation();
+        //         }, 2000); // 2 second delay to simulate server response
+        //     } else {
+        //         alert('Please enter a valid Instagram Reel URL');
+        //     }
+        // });
+        
+        // Toggle active class for quality options
+        // const qualityOptions = document.querySelectorAll('.quality-option');
+        // qualityOptions.forEach(option => {
+        //     option.addEventListener('click', function() {
+        //         qualityOptions.forEach(opt => opt.classList.remove('active'));
+        //         this.classList.add('active');
+        //     });
+        // });
+
+
+    </script>
+</body>
+</html>
